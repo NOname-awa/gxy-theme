@@ -1,0 +1,76 @@
+# ~/.config/fish/functions/fish_prompt.fish
+
+function fish_prompt --description 'Custom prompt'
+    set -l last_status $status
+    set -l path (prompt_pwd --full-length-dirs 2)
+
+    set -l black_fg "\033[30m"
+    set -l black_bg "\033[40m"
+    set -l white_bg "\033[48;2;255;255;255m"
+    set -l blue_fg "\e[38;2;129;169;254m"
+    set -l blue_bg "\e[48;2;129;169;254m"
+    set -l dark_blue_fg "\e[38;2;59;66;97m"
+    set -l dark_blue_bg "\e[48;2;59;66;97m"
+    set -l pink_fg "\e[38;2;197;134;192m"
+    set -l bold "\e[1m"
+    set -l reset "\e[0m"
+    
+    set -l is_home (string match -r '^~' $path)
+
+    if test -n "$is_home"
+        set path (string replace -r '^'"$HOME" '~' $path)
+        set path (string replace -a '/' " $black_fg $blue_fg" $path)
+    else if test "$path" != "/"
+        set path (string replace -a '/' " $black_fg $blue_fg" $path)
+        set path "/$path"
+    else
+        set path "/"
+    end
+
+    set -l user (whoami)
+    set -l host (hostname)
+
+    set -l git_branch (command git symbolic-ref --short HEAD 2> /dev/null)
+    set -l git_commit (command git rev-parse --short HEAD 2> /dev/null)
+    set -l git_info ""
+    if test -n "$git_branch"
+        set git_info "$git_branch"
+    end
+
+    set -l current_fg "black"
+    switch (set_color --print bg)
+        case white
+            set current_fg "white"
+    end
+
+    echo -en "\n┌ "
+    echo -en "$blue_fg$reset"
+
+    echo -en "$blue_bg$black_fg FS▕ $user $reset"
+
+    echo -en "$black_bg$blue_fg$reset"
+    echo -en "$dark_blue_bg$black_fg"
+    echo -en "$dark_blue_bg$blue_fg $path $reset"
+    echo -en "$dark_blue_fg$reset"
+
+    if test -n "$git_info"
+        echo -en " $pink_fg $git_info $reset"
+    end
+
+    if test $last_status -ne 0
+        if test -n "$git_info"
+            echo -ne "\b"
+        end
+        echo -en " $bold$dark_blue_fg$last_status $reset"
+    end
+
+    echo -en "$blue_fg$reset"
+
+    echo -en "\n└ "
+
+    if fish_is_root_user
+        echo -n "# "
+    else
+        echo -n "> "
+    end
+end

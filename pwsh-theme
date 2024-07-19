@@ -1,0 +1,94 @@
+# $PROFILE
+
+function prompt {
+    $lastCommandStatus = $?
+
+    $black_fg = "`e[30m"
+    $black_bg = "`e[40m"
+    $blue_fg = "`e[38;2;129;169;254m"
+    $blue_bg = "`e[48;2;129;169;254m"
+    $dark_blue_fg = "`e[38;2;59;66;97m"
+    $dark_blue_bg = "`e[48;2;59;66;97m"
+    $pink_fg = "`e[38;2;197;134;192m"
+    $bold = "`e[1m"
+    $reset = "`e[0m"
+
+    if ($IsWindows) {
+        $user = $env:USERNAME
+    } elseif ($IsLinux) {
+        $user = $env:USER
+    }
+
+    function Format-Path ($path) {
+        if ($IsWindows) {
+            if ($path -match "^[A-Za-z]:\\$") {
+                return $path
+            }
+            $path = $path -replace [regex]::Escape($HOME), "~"
+            $pathParts = $path -split '\\'
+            for ($i = 0; $i -lt ($pathParts.Length - 2); $i++) {
+                if ($pathParts[$i] -ne '~' -and $pathParts[$i] -ne '') {
+                    $pathParts[$i] = $pathParts[$i][0]
+                }
+            }
+            $path = -join ($pathParts -join (" $black_fg" + [char]0xE0B1 + "$blue_fg "))
+        } else {
+            if ($path -eq "/") {
+                return $path
+            }
+            $path = $path -replace [regex]::Escape($HOME), "~"
+            $pathParts = $path -split '/'
+            for ($i = 0; $i -lt ($pathParts.Length - 2); $i++) {
+                if ($pathParts[$i] -ne '~' -and $pathParts[$i] -ne '') {
+                    $pathParts[$i] = $pathParts[$i][0]
+                }
+            }
+            $path = -join ($pathParts -join (" $black_fg" + [char]0xE0B1 + "$blue_fg "))
+            if ($path -notmatch "^~") {
+                $path = "/" + $path
+            }
+        }
+        return $path
+    }
+
+    $path = (Get-Location).Path
+    $path = Format-Path $path
+
+    $git_branch = ""
+    $git_info = ""
+    if (git rev-parse --is-inside-work-tree 2> $null) {
+        $git_branch = (git symbolic-ref --short HEAD 2> $null)
+        if ($git_branch) {
+            $git_info = $git_branch
+        }
+    }
+
+    $prompt = "`n┌ "
+    $prompt += "$blue_fg" + [char]0xE0B2 + "$reset"
+
+    $prompt += "$blue_bg$black_fg PS▕ $user $reset"
+
+    $prompt += "$black_bg$blue_fg" + [char]0xE0B0 + "$reset"
+    $prompt += "$dark_blue_bg$black_fg" + [char]0xE0B0
+    $prompt += "$dark_blue_bg$blue_fg $path $reset"
+    $prompt += "$dark_blue_fg" + [char]0xE0B0 + "$reset"
+
+    if ($git_info) {
+        $prompt += " $pink_fg" + [char]0xE0A0 + " $git_info $reset"
+    }
+
+    if (! $lastCommandStatus) {
+        if ($git_info) {
+            $prompt += "`b"
+        }
+        $prompt += " $bold$dark_blue_fg" + "Err" + " $reset"
+    }
+
+    $prompt += "$blue_fg" + [char]0xE0B1 + "$reset"
+
+    $prompt += "`n└ > "
+
+    $prompt
+}
+
+$global:prompt = prompt

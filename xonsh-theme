@@ -1,0 +1,66 @@
+# ~/.xonshrc
+
+import os
+import subprocess
+import builtins
+
+os.environ['PROMPT_TOOLKIT_COLOR_DEPTH'] = 'DEPTH_24_BIT'
+
+def custom_prompt():
+    black_fg = "\033[30m"
+    black_bg = "\033[40m"
+    white_bg = "\033[48;2;255;255;255m"
+    blue_fg = "\033[38;2;129;169;254m"
+    blue_bg = "\033[48;2;129;169;254m"
+    dark_blue_fg = "\x1b[38;2;59;66;97m"
+    dark_blue_bg = "\x1b[48;2;59;66;97m"
+    pink_fg = "\033[38;2;197;134;192m"
+    bold = "\033[1m"
+    reset = "\033[0m"
+
+    last_status = builtins.__xonsh__.history[-1].rtn if builtins.__xonsh__.history else 0
+    path = os.getcwd()
+
+    home = os.path.expanduser("~")
+    if path.startswith(home):
+        path = path.replace(home, '~')
+        path = path.replace('/', f' {black_fg} {blue_fg}')
+    elif path != "/":
+        path = '/' + path.replace('/', f' {black_fg} {blue_fg}')
+    else:
+        path = "/"
+
+    user = os.getenv("USER")
+    host = os.uname().nodename
+
+    git_branch = ""
+    git_info = ""
+    try:
+        git_branch = subprocess.check_output(['git', 'symbolic-ref', '--short', 'HEAD'], stderr=subprocess.DEVNULL).decode().strip()
+        if git_branch:
+            git_info = git_branch
+    except subprocess.CalledProcessError:
+        pass
+
+    prompt = f"\n┌ {blue_fg}{reset}"
+    prompt += f"{blue_bg}{black_fg} XS▕ {user} {reset}"
+    prompt += f"{black_bg}{blue_fg}{reset}"
+    prompt += f"{dark_blue_bg}{black_fg}{dark_blue_bg}{blue_fg} {path} {reset}"
+    prompt += f"{dark_blue_fg}{reset}"
+
+    if git_info:
+        prompt += f" {pink_fg} {git_info} {reset}"
+
+    if last_status != 0:
+        prompt += f" {bold}{dark_blue_fg}{last_status} {reset}"
+
+    prompt += f"{blue_fg}{reset}\n└ "
+
+    if os.geteuid() == 0:
+        prompt += "# "
+    else:
+        prompt += "$ "
+
+    return prompt
+
+$PROMPT = custom_prompt
